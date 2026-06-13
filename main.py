@@ -1,11 +1,11 @@
 import sqlite3
 from datetime import datetime
 
-# 1. Σύνδεση με τη βάση δεδομένων (Το αρχείο expenses.db θα δημιουργηθεί αυτόματα)
+# Σύνδεση με τη βάση δεδομένων
 conn = sqlite3.connect('expenses.db')
 cursor = conn.cursor()
 
-# 2. Δημιουργία του πίνακα 'expenses' αν δεν υπάρχει ήδη
+# Δημιουργία του πίνακα 'expenses'
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,9 +17,34 @@ cursor.execute('''
 ''')
 conn.commit()
 
+# ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Προσθήκη Εξόδου
+def add_expense():
+    print("\n--- Νέα Καταχώρηση ---")
+    try:
+        # Ζητάμε το ποσό και το μετατρέπουμε σε δεκαδικό αριθμό (float)
+        amount = float(input("Δώσε ποσό σε ευρώ (π.χ. 3.50): "))
+    except ValueError:
+        print("[!] Λάθος: Πρέπει να γράψεις αριθμό. Δοκίμασε ξανά.")
+        return
+
+    category = input("Κατηγορία (π.χ. Καφές, Supermarket, Βενζίνη): ")
+    description = input("Περιγραφή (προαιρετικά, πάτα Enter για κενό): ")
+    
+    # Παίρνουμε την τωρινή ημερομηνία και ώρα αυτόματα
+    current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Εισαγωγή των δεδομένων στη βάση (SQL) με ασφαλή τρόπο χρησιμοποιώντας τα '?'
+    cursor.execute('''
+        INSERT INTO expenses (amount, category, description, date)
+        VALUES (?, ?, ?, ?)
+    ''', (amount, category, description, current_date))
+    
+    conn.commit()
+    print(f"\n[+] Επιτυχία! Το έξοδο καταχωρήθηκε: {amount}€ για '{category}'.")
+
+
 def main():
     while True:
-        # 3. Το κεντρικό μενού της εφαρμογής
         print("\n--- Διαχειριστής Προσωπικών Εξόδων ---")
         print("1. Προσθήκη νέου εξόδου")
         print("2. Προβολή όλων των εξόδων")
@@ -28,12 +53,11 @@ def main():
         choice = input("Επίλεξε μια ενέργεια (1-3): ")
         
         if choice == '1':
-            print("\n[!] Εδώ θα γράψουμε τον κώδικα για την προσθήκη...")
+            add_expense() # Καλεί τη νέα μας συνάρτηση!
         elif choice == '2':
             print("\n[!] Εδώ θα γράψουμε τον κώδικα για την προβολή...")
         elif choice == '3':
             print("\nΚλείσιμο προγράμματος. Τα λέμε!")
-            # Κλείνουμε τη σύνδεση με τη βάση πριν κλείσει το πρόγραμμα
             conn.close()
             break
         else:
