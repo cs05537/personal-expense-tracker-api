@@ -1,11 +1,17 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
 import sqlite3
 from datetime import datetime
 
-# Σύνδεση με τη βάση δεδομένων
-conn = sqlite3.connect('expenses.db')
+# 1. Αρχικοποίηση της εφαρμογής (Το "γκαρσόνι" μας)
+app = FastAPI(title="Personal Expense Tracker API")
+
+# 2. Σύνδεση με τη βάση
+# Το check_same_thread=False είναι απαραίτητο για web εφαρμογές με SQLite
+conn = sqlite3.connect('expenses.db', check_same_thread=False)
 cursor = conn.cursor()
 
-# Δημιουργία του πίνακα 'expenses'
+# Δημιουργία πίνακα (παραμένει ίδιο)
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,76 +23,47 @@ cursor.execute('''
 ''')
 conn.commit()
 
+# 3. Μοντέλο Δεδομένων: Πώς περιμένουμε να έρχονται τα νέα έξοδα
+class Expense(BaseModel):
+    amount: float
+    category: str
+    description: str = "" # Προαιρετικό, αν δεν μπει θα είναι κενό
 
-def add_expense():
-    print("\n--- Νέα Καταχώρηση ---")
-    try:
-        amount = float(input("Δώσε ποσό σε ευρώ (π.χ. 3.50): "))
-    except ValueError:
-        print("[!] Λάθος: Πρέπει να γράψεις αριθμό. Δοκίμασε ξανά.")
-        return
+# 4. GET Endpoint (Αντικαθιστά το "Προβολή όλων των εξόδων")
+@app.get("/expenses")
+def get_expenses():
+    cursor.execute("SELECT id, amount, category, description, date FROM expenses")
+    rows = cursor.fetchall()
+    
+    expenses_list = []
+    total = 0.0
+    
+    for row in rows:
+        expenses_list.append({
+            "id": row[0],
+            "amount": row[1],
+            "category": row[2],
+            "description": row[3],
+            "date": row[4]
+        })
+        total += row[1]
+        
+    # Το API επιστρέφει πάντα δεδομένα σε μορφή JSON (λεξικό της Python)
+    return {"total_spent": round(total, 2), "expenses": expenses_list}
 
-    category = input("Κατηγορία (π.χ. Καφές, Supermarket, Βενζίνη): ")
-    description = input("Περιγραφή (προαιρετικά, πάτα Enter για κενό): ")
+# 5. POST Endpoint (Αντικαθιστά το "Προσθήκη νέου εξόδου")
+@app.post("/expenses")
+def add_expense(expense: Expense):
     current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+    
     cursor.execute('''
         INSERT INTO expenses (amount, category, description, date)
         VALUES (?, ?, ?, ?)
-    ''', (amount, category, description, current_date))
-    
+    ''', (expense.amount, expense.category, expense.description, current_date))
     conn.commit()
-    print(f"\n[+] Επιτυχία! Το έξοδο καταχωρήθηκε: {amount}€ για '{category}'.")
-
-
-# ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Προβολή Εξόδων
-def view_expenses():
-    print("\n--- Λίστα Εξόδων ---")
     
-    # Παίρνουμε όλα τα δεδομένα από τον πίνακα expenses
-    cursor.execute("SELECT id, amount, category, description, date FROM expenses")
-    rows = cursor.fetchall() # Το fetchall() επιστρέφει μια λίστα με όλες τις γραμμές
-    
-    if not rows:
-        print("[!] Δεν υπάρχουν καταχωρημένα έξοδα ακόμα.")
-        return
-
-    total_spend = 0.0
-    
-    # Εμφανίζουμε κάθε έξοδο σε γραμμές
-    for row in rows:
-        expense_id = row[0]
-        amount = row[1]
-        category = row[2]
-        description = row[3] if row[3] else "-" # Αν δεν έχει περιγραφή, βάλε μια παύλα
-        date = row[4]
-        
-        print(f"[{expense_id}] {date} | {category}: {amount}€ ({description})")
-        total_spend += amount # Προσθέτουμε το ποσό στο σύνολο
-
-    print("-" * 40)
-    print(f"ΣΥΝΟΛΙΚΑ ΕΞΟΔΑ: {total_spend:.2f}€")
-
-
-def main():
-    while True:
-        print("\n--- Διαχειριστής Προσωπικών Εξόδων ---")
-        print("1. Προσθήκη νέου εξόδου")
-        print("2. Προβολή όλων των εξόδων")
-        print("3. Έξοδος")
-        
-        choice = input("Επίλεξε μια ενέργεια (1-3): ")
-        
-        if choice == '1':
-            add_expense()
-        elif choice == '2':
-            view_expenses() # Καλεί τη νέα μας συνάρτηση!
-        elif choice == '3':
-            print("\nΚλείσιμο προγράμματος. Τα λέμε!")
-            conn.close()
-            break
-        else:
-            print("\nΛάθος επιλογή. Πληκτρολόγησε 1, 2 ή 3.")
-
-if __name__ == "__main__":
-    main()
+    return {
+        "message": "Το έξοδο καταχωρήθηκε επιτυχώς!", 
+        "category": expense.category,
+        "amount": expense.amount
+    }
