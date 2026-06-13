@@ -3,7 +3,7 @@ from pydantic import BaseModel
 import sqlite3
 from datetime import datetime
 
-# 1. Αρχικοποίηση της εφαρμογής (Το "γκαρσόνι" μας)
+# 1. Αρχικοποίηση της εφαρμογής 
 app = FastAPI(title="Personal Expense Tracker API")
 
 # 2. Σύνδεση με τη βάση
@@ -11,7 +11,7 @@ app = FastAPI(title="Personal Expense Tracker API")
 conn = sqlite3.connect('expenses.db', check_same_thread=False)
 cursor = conn.cursor()
 
-# Δημιουργία πίνακα (παραμένει ίδιο)
+# Δημιουργία πίνακα 
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS expenses (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,7 +27,7 @@ conn.commit()
 class Expense(BaseModel):
     amount: float
     category: str
-    description: str = "" # Προαιρετικό, αν δεν μπει θα είναι κενό
+    description: str = "" # Προαιρετικό
 
 # 4. GET Endpoint (Αντικαθιστά το "Προβολή όλων των εξόδων")
 @app.get("/expenses")
@@ -48,7 +48,7 @@ def get_expenses():
         })
         total += row[1]
         
-    # Το API επιστρέφει πάντα δεδομένα σε μορφή JSON (λεξικό της Python)
+    # Το API επιστρέφει πάντα δεδομένα σε μορφή JSON
     return {"total_spent": round(total, 2), "expenses": expenses_list}
 
 # 5. POST Endpoint (Αντικαθιστά το "Προσθήκη νέου εξόδου")
