@@ -7,7 +7,6 @@ from datetime import datetime
 app = FastAPI(title="Personal Expense Tracker API")
 
 # 2. Σύνδεση με τη βάση
-# Το check_same_thread=False είναι απαραίτητο για web εφαρμογές με SQLite
 conn = sqlite3.connect('expenses.db', check_same_thread=False)
 cursor = conn.cursor()
 
