@@ -67,3 +67,17 @@ def add_expense(expense: Expense):
         "category": expense.category,
         "amount": expense.amount
     }
+
+# 6. DELETE Endpoint 
+@app.delete("/expenses/{expense_id}")
+def delete_expense(expense_id: int):
+    # Ελέγχουμε πρώτα αν υπάρχει αυτό το ID στη βάση
+    cursor.execute("SELECT id FROM expenses WHERE id = ?", (expense_id,))
+    if not cursor.fetchone():
+        return {"error": "Το έξοδο με αυτό το ID δεν βρέθηκε."}
+    
+    # Διαγραφή από τη βάση
+    cursor.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
+    conn.commit()
+    
+    return {"message": f"Το έξοδο με ID {expense_id} διαγράφηκε επιτυχώς!"}
